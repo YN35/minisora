@@ -1,5 +1,5 @@
 
-# minisora
+# minisora: a toy re-implementation of Sora
 
 <p align="center">
   <a href="https://github.com/YN35/minisora">GitHub (リポジトリ)</a> |
@@ -34,7 +34,7 @@ cd minisora
 # 依存関係のインストール
 uv sync --dev
 
-# Docker コンテナ起動（学習・データ DL 用）
+# Docker コンテナ起動
 docker compose up -d
 
 # ランダム動画生成デモ
@@ -44,7 +44,20 @@ uv run scripts/demo/full_vgen.py
 uv run scripts/demo/full_continuation.py
 ```
 
-`outputs/demo_i2v.mp4` と `outputs/demo_continuation.mp4` が生成される。
+```python
+from minisora.models import DiTPipeline
+
+pipeline = DiTPipeline.from_pretrained("ramu0e/minisora-dmlab")
+
+output = pipeline(
+    batch_size=1,
+    num_inference_steps=28,
+    height=64,
+    width=64,
+    num_frames=20,
+)
+latents = output.latents
+```
 
 ---
 
@@ -119,9 +132,6 @@ uv run bash scripts/download/minecraft.sh /data/minisora
 ---
 
 ## 4. 学習の実行
-
-GPU を指定して学習ジョブを実行します。`CUDA_VISIBLE_DEVICES` は使用したい GPU ID
-に応じて変更してください。
 
 ```bash
 export CUDA_VISIBLE_DEVICES=3
