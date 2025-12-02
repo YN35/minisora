@@ -1,0 +1,64 @@
+[project]
+name = "minisora"
+version = "0.1.0"
+description = "minisora fine-tuning workflows"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+    "torchaudio==2.8.0",
+    "torchcodec==0.7.0",
+    "flash-attn",
+    "transformers==4.57.1",
+    "diffusers==0.35.2",
+    "peft",
+    "trl",
+    "datasets>=3.0.0",
+    "wandb",
+    "colossalai==0.5.0",
+    "tensorboard",
+    "gradio",
+    "jsonlines",
+    "google-generativeai",
+    "python-dotenv",
+    "internetarchive",
+    "av",
+]
+
+[dependency-groups]
+dev = [
+    "isort>=6.0.1",
+    "black>=22.8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["minisora"]
+
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "B"]
+ignore = ["E203", "E266", "E501"]
+target-version = "py311"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+colossalai = { git = "https://github.com/YN35/ColossalAI-weak-depend", branch = "main" }
+flash-attn = { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.11/flash_attn-2.8.3+cu128torch2.8-cp311-cp311-linux_x86_64.whl"}
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+torchaudio = { index = "pytorch-cu128" }
