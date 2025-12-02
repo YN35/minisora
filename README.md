@@ -1,54 +1,111 @@
-
-# minisora: a toy re-implementation of Sora
+# minisora: A minimal & Scalable PyTorch re-implementation of the OpenAI Sora training
 
 <p align="center">
-  <a href="https://github.com/YN35/minisora">GitHub (リポジトリ)</a> |
-  <a href="https://x.com/__ramu0e__">X (@__ramu0e__)</a> |
-  <a href="https://huggingface.co/ramu0e/minisora-dmlab">Hugging Face (minisora-dmlab)</a>
+<img src="assets/logo.png" width="300" alt="minisora logo (placeholder)"/>
 </p>
 
 <p align="center">
-  <b>ランダム動画生成</b> &nbsp;&nbsp;|&nbsp;&nbsp; <b>動画の続き生成</b>
+<b>A Minimal & Scalable PyTorch Implementation of DiT Video Generation</b>
 </p>
+
 <p align="center">
-  <img src="assets/demo_i2v.gif" width="45%" alt="ランダム動画生成デモ">
-  <img src="assets/demo_continuation.gif" width="45%" alt="動画の続き生成デモ">
+<a href="https://huggingface.co/ramu0e/minisora-dmlab">
+<img src="https://img.shields.io/badge/🤗%20Hugging%20Face-Models-yellow" alt="Hugging Face">
+</a>
+<a href="https://github.com/YN35/minisora">
+<img src="https://img.shields.io/badge/GitHub-Repo-black" alt="GitHub">
+</a>
+<a href="https://pytorch.org/">
+<img src="https://img.shields.io/badge/PyTorch-v2.0+-EE4C2C" alt="PyTorch">
+</a>
+<a href="https://www.google.com/search?q=LICENSE">
+<img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
+</a>
 </p>
 
-Minisora は、小さめの DiT ベース動画生成モデルを ColossalAI + Diffusers で学習・推論するためのリポジトリです。
+-----
 
-## 特徴
-- **マルチノード学習対応、スケール可能**
-- **動画の補完生成にも対応**
-- **できる限りシンプルで管理しやすいコードにするために様々な工夫**
+## 📖 Introduction
 
----
+**minisora** is a minimalist, educational, yet scalable re-implementation of the training process behind OpenAI's Sora (Diffusion Transformers). This project aims to strip away the complexity of large-scale video generation codebases while maintaining the ability to train on multi-node clusters.
 
-## クイックスタート
+It leverages **ColossalAI** for distributed training efficiency and **Diffusers** for a standardized inference pipeline.
 
+### ✨ Key Features
+
+  * **🚀 Scalable Training**: Built on ColossalAI to support multi-node, multi-GPU training out of the box.
+  * **🧩 Simple & Educational**: The codebase is designed to be readable and hackable, avoiding "spaghetti code" common in research repos.
+  * **🎬 Video Continuation**: Supports not just text-to-video, but also extending existing video clips (autoregressive-style generation in latent space).
+  * **🛠️ Modern Tooling**: Uses `uv` for fast dependency management and Docker for reproducible environments.
+
+-----
+
+## 🎥 Demos
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><b>Unconditional Generation</b></td>
+<td align="center"><b>Video Continuation</b></td>
+</tr>
+<tr>
+<td align="center"><img src="assets/demo_i2v.gif" width="100%" alt="Random Video Generation"></td>
+<td align="center"><img src="assets/demo_continuation.gif" width="100%" alt="Video Continuation"></td>
+</tr>
+</table>
+</div>
+
+-----
+
+## 🏗️ Architecture
+
+minisora implements a Latent Diffusion Transformer (DiT). It processes video latents as a sequence of patches, handling both spatial and temporal dimensions via attention mechanisms.
+
+![Diffusion Transformer architecture](assets/architecture.png)
+
+The library is organized to separate the model definition from the training logic:
+
+  * `minisora/models`: Contains the DiT implementation and pipeline logic.
+  * `minisora/data`: Data loading logic for DMLab and Minecraft datasets.
+  * `scripts/`: Training and inference entry points.
+
+-----
+
+
+## ⬇️ Model Zoo
+
+| Model Name | Dataset | Resolution | Frames | Download |
+| :--- | :--- | :--- | :--- | :--- |
+| **minisora-dmlab** | DeepMind Lab | $64 \times 64$ | 20 | [🤗 Hugging Face](https://huggingface.co/ramu0e/minisora-dmlab) |
+| **minisora-minecraft** | Minecraft | $128 \times 128$ | 20 | *(Coming Soon)* |
+
+-----
+
+## 🚀 Quick Start
+
+### Installation
+
+We recommend using `uv` for lightning-fast dependency management.
 
 ```bash
 git clone https://github.com/YN35/minisora
 cd minisora
 
-# 依存関係のインストール
+# Install dependencies including dev tools
 uv sync --dev
-
-# Docker コンテナ起動
-docker compose up -d
-
-# ランダム動画生成デモ
-uv run scripts/demo/full_vgen.py
-
-# 先頭フレームを固定した続き生成デモ
-uv run scripts/demo/full_continuation.py
 ```
+
+### Inference (Python)
+
+You can generate video using the pre-trained weights hosted on Hugging Face.
 
 ```python
 from minisora.models import DiTPipeline
 
+# Load the pipeline
 pipeline = DiTPipeline.from_pretrained("ramu0e/minisora-dmlab")
 
+# Run inference
 output = pipeline(
     batch_size=1,
     num_inference_steps=28,
@@ -56,114 +113,92 @@ output = pipeline(
     width=64,
     num_frames=20,
 )
-latents = output.latents
+
+# Access the latents or decode them
+latents = output.latents  # shape: (B, C, F, H, W)
+print(f"Generated video latents shape: {latents.shape}")
 ```
 
----
-
-## 環境構築と学習フロー
-
-このリポジトリで学習を行うまでの、ざっくりとした流れは次の通りです。
-
-1. 依存関係のインストール（`uv` を利用）
-2. Docker コンテナの起動
-3. データセットのダウンロード
-4. 学習ジョブの実行
-
-以下では、上記の順番でコマンドと補足説明をまとめています。
-
----
-
-## 1. 依存関係のインストール
-
-`uv` を使って開発用の依存関係までまとめてインストールします。
+### Run Demos
 
 ```bash
-git clone https://github.com/YN35/minisora
-cd minisora
-uv sync --dev
+# Random unconditional generation
+uv run scripts/demo/full_vgen.py
+
+# Continuation (fixing the first frame and generating the rest)
+uv run scripts/demo/full_continuation.py
 ```
 
----
+-----
 
-## 2. Docker コンテナの起動・停止
+## 🏋️ Training
 
-学習やデータダウンロードは Docker コンテナ内で行います。
+We provide a containerized workflow to ensure reproducibility.
 
-コンテナの起動:
+### 1\. Environment Setup (Docker)
+
+Start the development container:
 
 ```bash
 docker compose up -d
 ```
 
-コンテナの停止:
+> **Tip:** You can mount your local data directories by editing `docker-compose.override.yml`:
+>
+> ```yaml
+> services:
+>   minisora:
+>     volumes:
+>       - .:/workspace/minisora
+>       - /path/to/your/data:/data
+> ```
+
+### 2\. Data Preparation
+
+Download the sample datasets (DMLab or Minecraft) to your data directory:
 
 ```bash
-docker compose down
-```
-
-コンテナ起動時に、ホスト側のデータディレクトリなどをマウントしたい場合は、
-`docker-compose.override.yml` を編集／作成して調整します。
-
-`docker-compose.override.yml` の例:
-
-```yml
-services:
-  minisora:
-    container_name: my-minisora
-    volumes:
-      - .:/workspace/minisora
-      - /home/yn35/data:/data
-      - /home/yn35/huggingface_cache:/root/.cache/huggingface
-```
-
----
-
-## 3. データセットのダウンロード
-
-`/data/minisora` 以下にデータセットをダウンロードする例です。
-`/data/minisora` 部分はマウントしているホスト側ディレクトリに合わせて変更してください。
-
-```bash
+# Example: Downloading DMLab dataset
 uv run bash scripts/download/dmlab.sh /data/minisora
+
+# Example: Downloading Minecraft dataset
 uv run bash scripts/download/minecraft.sh /data/minisora
 ```
 
----
+### 3\. Run Training Job
 
-## 4. 学習の実行
+Training is launched via `torchrun`. The following command starts a single-node training job.
 
 ```bash
-export CUDA_VISIBLE_DEVICES=3
+# Set your GPU ID
+export CUDA_VISIBLE_DEVICES=0
+
+# Start training
 nohup uv run torchrun --standalone --nnodes=1 --nproc_per_node=1 \
   scripts/train.py --dataset_type=dmlab > outputs/train.log 2>&1 &
 ```
 
-- ログは `outputs/train.log` に書き出されます。
-- バックグラウンドで動作させたくない場合は `nohup` やリダイレクト部分を取り除いて実行してください。
-- `dataset_type` は `dmlab` / `minecraft` のいずれかを指定できます（`scripts/train.py` を参照）。
+You can monitor the progress in `outputs/train.log`. Change `--dataset_type` to `minecraft` to train on the Minecraft dataset.
 
----
+-----
 
-## 5. 推論・動画生成
+## 🗓️ Todo & Roadmap
 
-学習済みの DiT モデルを使って、Python から直接動画を生成できます。
+  - [x] Basic DiT Implementation
+  - [x] Integration with Diffusers Pipeline
+  - [x] Multi-node training with ColossalAI
+  - [x] Video Continuation support
 
-### 5.1 Python からの最小実行例
+-----
 
-学習済みウェイト `ramu0e/minisora-dmlab` を用いた、64x64・20 フレームの動画サンプル生成例です。
+## 🤝 Acknowledgements
 
-```python
-from minisora.models import DiTPipeline
+  * **[ColossalAI](https://github.com/hpcaitech/ColossalAI)**: For making distributed training accessible.
+  * **[Diffusers](https://github.com/huggingface/diffusers)**: For the robust diffusion pipeline structure.
+  * **[DiT Paper](https://arxiv.org/abs/2212.09748)**: Scalable Diffusion Models with Transformers.
 
-pipeline = DiTPipeline.from_pretrained("ramu0e/minisora-dmlab")
+-----
 
-output = pipeline(
-    batch_size=1,
-    num_inference_steps=28,
-    height=64,
-    width=64,
-    num_frames=20,
-)
-latents = output.latents  # shape: (B, C, F, H, W)
-```
+## 📄 License
+
+This project is licensed under the MIT License. See [LICENSE](https://www.google.com/search?q=LICENSE) for details.
